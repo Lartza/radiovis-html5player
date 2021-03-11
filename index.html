@@ -1,16 +1,16 @@
-<html>
+<html lang="en">
 	<head>
 		<title>RadioVis HTML5 Player</title>
 		
 		<style>
 			body{
-				font-family: verdana;
+				font-family: verdana,serif;
 				font-size:13px;
 			}
 
 			.radiovis-main {
 				border: 1px #C5C5C2 solid;
-				box-shadow: 1px 1px 10px 0px #C5C5C2;
+				box-shadow: 1px 1px 10px 0 #C5C5C2;
 			}
 
 			.radiovis-textframe {
@@ -32,23 +32,12 @@
 	<body>
 		<script>
 				$(document).ready(function(){
-					$('#frame1').radiovisplayer('/topic/fm/4e1/4000/10800');
-					$('#frame2').radiovisplayer('/topic/dab/ce1/ce15/c221/0');
-					$('#frame3').radiovisplayer('/topic/fm/fr/f201/10440');
-					$('#frame4').radiovisplayer('/topic/dab/6e0/6005/6354/0');
-					$('#frame5').radiovisplayer('/topic/dab/ce1/c185/c460/0');
-					$('#frame6').radiovisplayer('/topic/dab/de0/10d9/d3a6/0');
-
+					$('#frame1').radiovisplayer('/topic/image');
 				});
 		</script>
 
 
 		<div id="frame1" class="frame"></div>
-		<div id="frame2" class="frame"></div>
-		<div id="frame3" class="frame"></div>
-		<div id="frame4" class="frame"></div>
-		<div id="frame5" class="frame"></div>
-		<div id="frame6" class="frame"></div>
 
 
 	</body>

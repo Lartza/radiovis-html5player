@@ -1,11 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-SERVER_IP = '0.0.0.0'
-SERVER_PORT = 8777
-STATS_GAUGE_APPNAME = 'app.html5player'
-
-from gevent import monkey; monkey.patch_all()
+from gevent import monkey
+monkey.patch_all()
 
 from ws4py.websocket import WebSocket
 import dns.resolver
@@ -13,9 +9,17 @@ import time
 import socket
 import statsd
 
-from gevent.coros import RLock
+from gevent.lock import RLock
 
-class Stats():
+from ws4py.server.wsgiutils import WebSocketWSGIApplication
+from ws4py.server.geventserver import WSGIServer
+
+SERVER_IP = '0.0.0.0'
+SERVER_PORT = 8777
+STATS_GAUGE_APPNAME = 'app.html5player'
+
+
+class Stats:
     """The class to handle stats"""
 
     def __init__(self):
@@ -37,8 +41,6 @@ class Stats():
 
         self.gauge.send('nb_clients', total)
 
-
-
     def new_client(self, topic):
         """Register a new client on a topic"""
 
@@ -58,6 +60,7 @@ class Stats():
 
         self.update_stats()
 
+
 stats = Stats()
 
 
@@ -68,8 +71,6 @@ class RadioVisWebSocket(WebSocket):
 
         self.topic = environ['PATH_INFO']
         self.stompsocket = None
-
-        
 
     def closed(self, code, reason=None):
         if self.stompsocket:
@@ -93,10 +94,9 @@ class RadioVisWebSocket(WebSocket):
             if dns_entry[0] == '*':
                 dns_entry = '10800' + dns_entry[1:]
 
-            
             # Find radiodns servers
-            ns = str(dns.resolver.query('radiodns.org', 'NS')[0])
-            ip = str(dns.resolver.query(ns, 'A')[0])
+            ns = str(dns.resolver.resolve('radiodns.org', 'NS', search=True)[0])
+            ip = str(dns.resolver.resolve(ns, 'A', search=True)[0])
 
             # Build a resolver using radiodns.org nameserver, timeout of 2, to be sure to have the latested FQDN
             resolver = dns.resolver.Resolver()
@@ -104,7 +104,7 @@ class RadioVisWebSocket(WebSocket):
             resolver.nameservers = [ip]  # Use radiodns.org servers
 
             try:
-                fqdn = str(resolver.query(dns_entry, 'CNAME')[0])
+                fqdn = str(resolver.resolve(dns_entry, 'CNAME', search=True)[0])
             except:
                 self.send("RADIOVISWEBSOCKET:NOFQDN\x00")
                 time.sleep(1)
@@ -116,7 +116,7 @@ class RadioVisWebSocket(WebSocket):
             resolver.lifetime = 2  # Timeout of 2
 
             try:
-                vis = str(resolver.query('_radiovis._tcp.' + fqdn, 'SRV')[0])
+                vis = str(resolver.resolve('_radiovis._tcp.' + fqdn, 'SRV', search=True)[0])
             except:
                 self.send("RADIOVISWEBSOCKET:NOVIS\x00")
                 time.sleep(1)
@@ -134,12 +134,12 @@ class RadioVisWebSocket(WebSocket):
             def get_one_frame():
                 """Return one stomp frame"""
 
-                while not "\x00" in self.incomingData:
+                while "\x00" not in self.incomingData:
                     data = self.stompsocket.recv(1024)
                     if not data:
-                       return None
+                        return None
                     else:
-                       self.incomingData += data
+                        self.incomingData += data
 
                 # Get only one frame
                 splited_data = self.incomingData.split('\x00', 1)
@@ -149,7 +149,7 @@ class RadioVisWebSocket(WebSocket):
 
                 return splited_data[0]
 
-            self.stompsocket.send('CONNECT\n\n\x00')
+            self.stompsocket.send(b'CONNECT\n\n\x00')
 
             result = get_one_frame()
 
@@ -190,8 +190,6 @@ class RadioVisWebSocket(WebSocket):
                     self.close()
                     return
 
-
-
     def received_message(self, message):
         """Called when a client send a message."""
 
@@ -199,7 +197,6 @@ class RadioVisWebSocket(WebSocket):
         self.send("RADIOVISWEBSOCKET:ERROR:Unexcepted message\x00")
         self.close()
 
-from ws4py.server.geventserver import WebSocketWSGIApplication, WSGIServer
 
 class WebSocketApplication(object):
     def __init__(self, host, port):
@@ -211,11 +208,10 @@ class WebSocketApplication(object):
         return self.ws(environ, start_response)
 
 
-    
 server = WSGIServer((SERVER_IP, SERVER_PORT), WebSocketApplication(SERVER_IP, SERVER_PORT))
 
 
 try:
     server.serve_forever()
 except KeyboardInterrupt:
-    server.server_close()
+    server.close()
